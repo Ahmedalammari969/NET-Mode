@@ -1,0 +1,10 @@
+{
+    "mcpServers": {
+        "flutter-tools": {
+            "command": "flutter",
+            "args": [
+                "analyze"
+            ]
+        }
+    }
+}
