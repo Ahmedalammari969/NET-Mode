@@ -3,6 +3,10 @@ import 'package:flutter/services.dart';
 abstract class RadioDeviceDataSource {
   Future<Map<String, dynamic>> getInstantNetworkSnapshot();
   Future<bool> openRadioMenu();
+
+  /// يحاول تطبيق نمط الشبكة المحدد مباشرة.
+  /// يُرجع true إذا نجح التطبيق الفوري، وfalse إذا فتح قائمة الراديو كـ Fallback.
+  Future<bool> setNetworkMode(int networkTypeCode);
 }
 
 class RadioDeviceDataSourceImpl implements RadioDeviceDataSource {
@@ -36,6 +40,19 @@ class RadioDeviceDataSourceImpl implements RadioDeviceDataSource {
         'openRadioSettings',
       );
       return success ?? false;
+    } on PlatformException catch (_) {
+      return false;
+    }
+  }
+
+  @override
+  Future<bool> setNetworkMode(int networkTypeCode) async {
+    try {
+      final bool? applied = await _channel.invokeMethod<bool>(
+        'setNetworkMode',
+        {'networkTypeCode': networkTypeCode},
+      );
+      return applied ?? false;
     } on PlatformException catch (_) {
       return false;
     }
