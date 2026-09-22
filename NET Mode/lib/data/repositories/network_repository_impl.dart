@@ -40,4 +40,9 @@ class NetworkRepositoryImpl implements NetworkRepository {
   Future<NetworkMode?> getPreferredMode() async {
     return _cachedPreferredMode;
   }
+
+  @override
+  Future<bool> setNetworkMode(NetworkMode mode) {
+    return _radioDataSource.setNetworkMode(mode.networkTypeCode);
+  }
 }

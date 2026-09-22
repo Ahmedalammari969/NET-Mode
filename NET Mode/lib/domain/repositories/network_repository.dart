@@ -13,4 +13,8 @@ abstract class NetworkRepository {
 
   /// Retrieves the saved preferred network mode.
   Future<NetworkMode?> getPreferredMode();
+
+  /// Applies the given network mode to the device modem via the platform channel.
+  /// Returns true if the mode was applied directly, false if it fell back to the radio UI.
+  Future<bool> setNetworkMode(NetworkMode mode);
 }

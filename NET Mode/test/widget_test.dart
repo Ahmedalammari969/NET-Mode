@@ -1,13 +1,13 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:net_mode/domain/entities/network_info.dart';
 import 'package:net_mode/domain/entities/network_mode.dart';
 import 'package:net_mode/domain/repositories/network_repository.dart';
 import 'package:net_mode/domain/usecases/network_usecases.dart';
 import 'package:net_mode/main.dart';
-import 'package:flutter/material.dart';
 
 class FakeNetworkRepository implements NetworkRepository {
-  NetworkMode? _mode = NetworkMode.lteOnly;
+  NetworkMode? _mode;
 
   @override
   Future<NetworkInfo> getInstantNetworkSnapshot() async {
@@ -28,16 +28,23 @@ class FakeNetworkRepository implements NetworkRepository {
   Future<void> savePreferredMode(NetworkMode mode) async {
     _mode = mode;
   }
+
+  @override
+  Future<bool> setNetworkMode(NetworkMode mode) async {
+    _mode = mode;
+    return true;
+  }
 }
 
 void main() {
-  testWidgets('NetMode HomeScreen renders network telemetry and modes', (
+  testWidgets('HomeScreen عرض أنماط الشبكة اليمنية الخمسة وتطبيقها', (
     WidgetTester tester,
   ) async {
     final fakeRepo = FakeNetworkRepository();
     final getSnapshot = GetInstantNetworkSnapshotUseCase(fakeRepo);
     final openRadio = OpenRadioSettingsUseCase(fakeRepo);
     final manageMode = ManagePreferredModeUseCase(fakeRepo);
+    final setMode = SetNetworkModeUseCase(fakeRepo);
 
     await tester.pumpWidget(
       MaterialApp(
@@ -45,22 +52,32 @@ void main() {
           getSnapshotUseCase: getSnapshot,
           openRadioSettingsUseCase: openRadio,
           managePreferredModeUseCase: manageMode,
+          setNetworkModeUseCase: setMode,
         ),
       ),
     );
 
-    // Initial frame
-    expect(find.text('NET Mode - التحكم بالشبكة'), findsOneWidget);
+    // الإطار الأول — تحميل
+    expect(find.byType(CircularProgressIndicator), findsWidgets);
 
-    // Let async loading finish
-    await tester.pump();
+    // انتظر اكتمال التحميل اللاتزامني
+    await tester.pumpAndSettle();
 
-    // Verify snapshot loaded from domain
+    // التحقق من ظهور معلومات المشغل
     expect(find.text('Yemen Mobile'), findsOneWidget);
-    expect(find.text('النمط الفعلي: 4G LTE'), findsOneWidget);
 
-    // Verify preset modes are present
-    expect(find.text('LTE Only'), findsOneWidget);
-    expect(find.text('NR Only (5G)'), findsOneWidget);
+    // التحقق من ظهور الأنماط اليمنية الخمسة
+    expect(find.text('Yemen Mobile+4G'), findsOneWidget);
+    expect(find.text('3G Yemen Mobile فقط'), findsOneWidget);
+    expect(find.text('sabafon+you'), findsOneWidget);
+    expect(find.text('VoLTE'), findsOneWidget);
+    expect(find.text('تلقائي'), findsOneWidget);
+
+    // اختبار الضغط على نمط وتطبيقه
+    await tester.tap(find.text('Yemen Mobile+4G'));
+    await tester.pumpAndSettle();
+
+    // التحقق من أن SnackBar ظهر
+    expect(find.textContaining('Yemen Mobile+4G'), findsWidgets);
   });
 }
