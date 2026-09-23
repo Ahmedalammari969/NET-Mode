@@ -22,7 +22,7 @@ class NetworkRepositoryImpl implements NetworkRepository {
       carrier: rawSnapshot['carrier']?.toString() ?? 'No Carrier',
       networkType: rawSnapshot['networkType']?.toString() ?? 'Unknown',
       hasSimCard: rawSnapshot['simState'] == true,
-      isAirplaneMode: false,
+      isAirplaneMode: rawSnapshot['isAirplaneMode'] == true,
     );
   }
 

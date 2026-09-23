@@ -148,7 +148,7 @@ class NetworkMode {
     networkTypeCode: 7,
     generation: NetworkGeneration.fourG,
     isLockMode: false,
-    description: 'CDMA+LTE/EVDO (PRL) — يمن موبايل 4G مع دعم EVDO.',
+    description: 'CDMA+LTE/EVDO (PRL)',
   );
 
   /// Yemen Mobile 3G Only Mode.
@@ -157,11 +157,11 @@ class NetworkMode {
   /// Android RIL code: 4 (CDMA_EVDO_AUTO).
   static const NetworkMode yemenMobile3G = NetworkMode(
     id: 'yemen_mobile_3g',
-    name: '3G Yemen Mobile فقط',
+    name: 'Yemen Mobile 3G Only',
     networkTypeCode: 4,
     generation: NetworkGeneration.threeG,
     isLockMode: true,
-    description: 'CDMA/EVDO Auto (PRL) — يمن موبايل 3G فقط.',
+    description: 'CDMA/EVDO auto (PRL)',
   );
 
   /// Sabafon + YOU (MTN) Mode.
@@ -170,11 +170,11 @@ class NetworkMode {
   /// Android RIL code: 10 (LTE_GSM_WCDMA).
   static const NetworkMode sabafonYou = NetworkMode(
     id: 'sabafon_you',
-    name: 'sabafon+you',
+    name: 'sabafon + you',
     networkTypeCode: 10,
     generation: NetworkGeneration.fourG,
     isLockMode: false,
-    description: 'GSM/WCDMA/LTE (PRL) — مناسب لشبكات سبأفون وواي.',
+    description: 'GSM/WCDMA/LTE (PRL)',
   );
 
   /// VoLTE (Voice over LTE) Mode.
@@ -187,7 +187,7 @@ class NetworkMode {
     networkTypeCode: 11,
     generation: NetworkGeneration.fourG,
     isLockMode: true,
-    description: 'LTE Only — تفعيل مكالمات VoLTE عبر تثبيت الشبكة على 4G.',
+    description: 'LTE only',
   );
 
   /// Auto / Global Mode (تلقائي).
@@ -196,11 +196,11 @@ class NetworkMode {
   /// Android RIL code: 0 (WCDMA_PREF / Auto-detect by modem).
   static const NetworkMode autoYemen = NetworkMode(
     id: 'auto_yemen',
-    name: 'تلقائي',
+    name: '(Auto)',
     networkTypeCode: 0,
     generation: NetworkGeneration.autoMultiMode,
     isLockMode: false,
-    description: 'Auto — الهاتف يختار الشبكة الأفضل تلقائياً.',
+    description: 'Unknown',
   );
 
   /// قائمة الأنماط اليمنية المخصصة للمشغلين المحليين.

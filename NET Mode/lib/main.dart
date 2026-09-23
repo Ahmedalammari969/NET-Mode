@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'data/datasources/radio_device_datasource.dart';
 import 'data/repositories/network_repository_impl.dart';
@@ -49,7 +50,7 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   late final GetInstantNetworkSnapshotUseCase _getSnapshotUseCase;
   late final OpenRadioSettingsUseCase _openRadioSettingsUseCase;
   late final ManagePreferredModeUseCase _managePreferredModeUseCase;
@@ -59,20 +60,43 @@ class _HomeScreenState extends State<HomeScreen> {
   NetworkMode? _preferredMode;
   bool _isLoading = true;
   bool _isApplying = false;
+  Timer? _refreshTimer;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     final repo = NetworkRepositoryImpl(radioDataSource: RadioDeviceDataSourceImpl());
     _getSnapshotUseCase = widget.getSnapshotUseCase ?? GetInstantNetworkSnapshotUseCase(repo);
     _openRadioSettingsUseCase = widget.openRadioSettingsUseCase ?? OpenRadioSettingsUseCase(repo);
     _managePreferredModeUseCase = widget.managePreferredModeUseCase ?? ManagePreferredModeUseCase(repo);
     _setNetworkModeUseCase = widget.setNetworkModeUseCase ?? SetNetworkModeUseCase(repo);
     _loadData();
+
+    // تحديث دوري كل 3 ثوانٍ لالتقاط أي تغيير فوري في الشبكة أو وضع الطيران
+    _refreshTimer = Timer.periodic(const Duration(seconds: 3), (_) {
+      if (mounted) _loadData(showIndicator: false);
+    });
   }
 
-  Future<void> _loadData() async {
-    setState(() => _isLoading = true);
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _loadData(showIndicator: false);
+    }
+  }
+
+  Future<void> _loadData({bool showIndicator = true}) async {
+    if (showIndicator && _networkInfo == null) {
+      setState(() => _isLoading = true);
+    }
     final snapshot = await _getSnapshotUseCase();
     final preferred = await _managePreferredModeUseCase.get();
     if (mounted) {
@@ -114,13 +138,13 @@ class _HomeScreenState extends State<HomeScreen> {
           content: Text(
             applied
                 ? '✅ تم تطبيق نمط "${mode.name}" بنجاح'
-                : '⚠️ فُتحت قائمة الراديو — اختر النمط يدوياً',
+                : '📲 افتحت صفحة الإعدادات — اختر من القائمة: ${mode.description}',
           ),
-          backgroundColor: applied ? const Color(0xFF0369A1) : const Color(0xFF92400E),
-          duration: const Duration(seconds: 3),
+          backgroundColor: applied ? const Color(0xFF0369A1) : const Color(0xFF1D4ED8),
+          duration: const Duration(seconds: 4),
+          behavior: SnackBarBehavior.floating,
         ),
-      );
-      // تحديث قراءة الشبكة في الإطار التالي بعد التغيير
+      );// تحديث قراءة الشبكة في الإطار التالي بعد التغيير
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _loadData();
       });
@@ -154,39 +178,58 @@ class _HomeScreenState extends State<HomeScreen> {
                   _NetworkStatusCard(networkInfo: _networkInfo),
                   const SizedBox(height: 16),
 
-                  // ── زر فتح إعدادات الراديو المخفية ──
-                  ElevatedButton.icon(
-                    onPressed: _openSettings,
-                    icon: const Icon(Icons.settings_suggest),
-                    label: const Text('تغيير نمط شبكة الهاتف'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF38BDF8),
-                      foregroundColor: const Color(0xFF0F172A),
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
+                  // ── زر تغيير نمط شبكة الهاتف (مطابق للصورة) ──
+                  Container(
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF0F172A).withValues(alpha: 0.5),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: const Color(0xFF38BDF8),
+                        width: 1.5,
                       ),
-                      textStyle: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
+                    ),
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(16),
+                        onTap: _openSettings,
+                        child: const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 14),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.settings, color: Color(0xFF38BDF8), size: 20),
+                              SizedBox(width: 8),
+                              Text(
+                                'تغيير نمط شبكة الهاتف',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF38BDF8),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
                     ),
                   ),
-                  const SizedBox(height: 28),
+                  const SizedBox(height: 24),
 
-                  // ── عنوان قسم الأنماط اليمنية ──
+                  // ── عنوان قسم الأنماط اليمنية (مطابق للصورة) ──
                   const Align(
                     alignment: Alignment.centerRight,
                     child: Text(
-                      ':اختر نمط الشبكة',
+                      'اختر نمط الشبكة:',
+                      textDirection: TextDirection.rtl,
                       style: TextStyle(
-                        fontSize: 17,
+                        fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFF38BDF8),
+                        color: Color(0xFF7DD3FC),
                       ),
                     ),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 14),
 
                   // ── قائمة الأنماط اليمنية الخمسة ──
                   ...NetworkMode.yemenPresets.map((mode) {
@@ -204,67 +247,204 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-// ─── بطاقة عرض حالة الشبكة الحالية ───────────────────────────────────────
+// ─── بطاقة حالة الشبكة الحالية (مطابقة للصورة بدقة) ─────────────────────────
 class _NetworkStatusCard extends StatelessWidget {
   final NetworkInfo? networkInfo;
+
   const _NetworkStatusCard({required this.networkInfo});
+
+  static Widget _buildBar(double height, {required bool isConnected}) {
+    return Container(
+      width: 6,
+      height: height,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(2.5),
+        gradient: isConnected
+            ? const LinearGradient(
+                begin: Alignment.bottomCenter,
+                end: Alignment.topCenter,
+                colors: [Color(0xFF0284C7), Color(0xFF38BDF8)],
+              )
+            : const LinearGradient(
+                begin: Alignment.bottomCenter,
+                end: Alignment.topCenter,
+                colors: [Color(0xFF334155), Color(0xFF64748B)],
+              ),
+        boxShadow: isConnected
+            ? [
+                BoxShadow(
+                  color: const Color(0xFF38BDF8).withValues(alpha: 0.6),
+                  blurRadius: 6,
+                  spreadRadius: 1,
+                ),
+              ]
+            : null,
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     final info = networkInfo;
+    final isAirplane = info?.isAirplaneMode == true;
+    final isConnected = info != null &&
+        info.hasSimCard &&
+        !isAirplane &&
+        info.carrier != 'No Carrier' &&
+        info.carrier != 'وضع الطيران';
+
+    final String statusText;
+    final Color statusColor;
+    if (isAirplane) {
+      statusText = 'وضع الطيران (غير متصلة)';
+      statusColor = const Color(0xFFFB923C);
+    } else if (isConnected) {
+      statusText = 'الشبكة متصلة';
+      statusColor = const Color(0xFF38BDF8);
+    } else {
+      statusText = 'الشبكة غير متصلة';
+      statusColor = Colors.redAccent;
+    }
+
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E293B),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF38BDF8).withValues(alpha: 0.25)),
+        color: const Color(0xFF162032).withValues(alpha: 0.75),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: const Color(0xFF38BDF8).withValues(alpha: 0.3),
+          width: 1.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.35),
+            blurRadius: 18,
+            offset: const Offset(0, 6),
+          ),
+        ],
       ),
       child: Column(
         children: [
-          const Icon(Icons.cell_tower, size: 56, color: Color(0xFF38BDF8)),
+          // ── السطر العلوي: أعمدة الإشارة في المنتصف و "الشبكة متصلة" على اليمين ──
+          SizedBox(
+            height: 50,
+            child: Stack(
+              children: [
+                Align(
+                  alignment: Alignment.center,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      _buildBar(14, isConnected: isConnected),
+                      const SizedBox(width: 5),
+                      _buildBar(22, isConnected: isConnected),
+                      const SizedBox(width: 5),
+                      _buildBar(30, isConnected: isConnected),
+                      const SizedBox(width: 5),
+                      _buildBar(38, isConnected: isConnected),
+                      const SizedBox(width: 5),
+                      _buildBar(46, isConnected: isConnected),
+                    ],
+                  ),
+                ),
+                Positioned(
+                  right: 4,
+                  top: 12,
+                  child: Text(
+                    statusText,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: statusColor,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
           const SizedBox(height: 12),
           if (info == null)
             const CircularProgressIndicator()
           else ...[
+            // ── اسم/رمز المشغل في المنتصف ──
             Text(
               info.carrier,
               style: const TextStyle(
-                fontSize: 22,
+                fontSize: 26,
                 fontWeight: FontWeight.bold,
                 color: Colors.white,
+                letterSpacing: 1,
               ),
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 10),
+            // ── النمط الحالي ──
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 6),
               decoration: BoxDecoration(
-                color: const Color(0xFF0369A1).withValues(alpha: 0.4),
+                color: const Color(0xFF0F2B48).withValues(alpha: 0.6),
                 borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: const Color(0xFF0284C7).withValues(alpha: 0.35),
+                  width: 1,
+                ),
               ),
-              child: Text(
-                'النمط الفعلي: ${info.networkType}',
-                style: const TextStyle(fontSize: 14, color: Color(0xFF7DD3FC)),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'النمط الحالي: ',
+                    textDirection: TextDirection.rtl,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF7DD3FC),
+                    ),
+                  ),
+                  Text(
+                    info.networkType,
+                    textDirection: TextDirection.ltr,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  info.hasSimCard ? Icons.sim_card : Icons.sim_card_alert,
-                  size: 18,
-                  color: info.hasSimCard ? Colors.greenAccent : Colors.redAccent,
+            const SizedBox(height: 10),
+            // ── شارة الشريحة متصلة مع أيقونة الرقاقة الذهبية ──
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+              decoration: BoxDecoration(
+                color: (info.hasSimCard ? const Color(0xFF14532D) : const Color(0xFF7F1D1D)).withValues(alpha: 0.35),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: (info.hasSimCard ? const Color(0xFF22C55E) : const Color(0xFFEF4444)).withValues(alpha: 0.35),
+                  width: 1,
                 ),
-                const SizedBox(width: 6),
-                Text(
-                  info.hasSimCard ? 'الشريحة جاهزة (SIM Ready)' : 'لا توجد شريحة',
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: info.hasSimCard ? Colors.greenAccent : Colors.redAccent,
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    info.hasSimCard ? Icons.sim_card : Icons.sim_card_alert,
+                    size: 16,
+                    color: info.hasSimCard ? const Color(0xFFEAB308) : Colors.redAccent,
                   ),
-                ),
-              ],
+                  const SizedBox(width: 8),
+                  Text(
+                    info.hasSimCard ? 'الشريحة متصلة' : 'الشريحة غير متصلة',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: info.hasSimCard ? const Color(0xFF4ADE80) : Colors.redAccent,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
         ],
@@ -273,7 +453,7 @@ class _NetworkStatusCard extends StatelessWidget {
   }
 }
 
-// ─── بطاقة نمط شبكة واحد ──────────────────────────────────────────────────
+// ─── بطاقة نمط شبكة واحد (مطابقة للصورة بدقة) ──────────────────────────────
 class _ModeCard extends StatelessWidget {
   final NetworkMode mode;
   final bool isSelected;
@@ -286,11 +466,6 @@ class _ModeCard extends StatelessWidget {
     required this.isApplying,
     required this.onTap,
   });
-
-  IconData get _icon {
-    if (!mode.isLockMode) return Icons.autorenew;
-    return Icons.lock_outline;
-  }
 
   Color get _generationColor {
     return switch (mode.generation) {
@@ -308,58 +483,103 @@ class _ModeCard extends StatelessWidget {
       onTap: isApplying ? null : onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 250),
-        margin: const EdgeInsets.only(bottom: 10),
+        margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
           color: isSelected
-              ? const Color(0xFF0284C7).withValues(alpha: 0.18)
-              : const Color(0xFF1E293B),
-          borderRadius: BorderRadius.circular(14),
+              ? const Color(0xFF0C2442).withValues(alpha: 0.75)
+              : const Color(0xFF162032).withValues(alpha: 0.75),
+          borderRadius: BorderRadius.circular(18),
           border: Border.all(
-            color: isSelected ? const Color(0xFF38BDF8) : Colors.transparent,
+            color: isSelected ? const Color(0xFF38BDF8) : const Color(0xFF334155).withValues(alpha: 0.45),
             width: 1.5,
           ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: const Color(0xFF38BDF8).withValues(alpha: 0.15),
+                    blurRadius: 10,
+                    spreadRadius: 1,
+                  ),
+                ]
+              : null,
         ),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // أيقونة النمط
+            // ── دائرة الجيل بالحدود الملونة (مطابقة للصورة) ──
             Container(
-              width: 44,
-              height: 44,
+              width: 48,
+              height: 48,
               decoration: BoxDecoration(
-                color: _generationColor.withValues(alpha: isSelected ? 0.25 : 0.12),
+                color: const Color(0xFF0B132B).withValues(alpha: 0.8),
                 shape: BoxShape.circle,
+                border: Border.all(
+                  color: _generationColor,
+                  width: 1.5,
+                ),
               ),
-              child: Icon(_icon, color: _generationColor, size: 22),
+              child: Center(
+                child: Text(
+                  mode.generation.label.split(' ')[0], // "4G", "3G", etc.
+                  style: TextStyle(
+                    color: _generationColor,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
             ),
             const SizedBox(width: 14),
-            // اسم النمط والوصف
+
+            // ── الاسم والنمط المستهدف مع سهم المثلث ──
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     mode.name,
-                    style: TextStyle(
-                      fontSize: 15,
+                    textDirection: TextDirection.ltr,
+                    style: const TextStyle(
+                      fontSize: 16,
                       fontWeight: FontWeight.w700,
-                      color: isSelected ? const Color(0xFF38BDF8) : Colors.white,
+                      color: Colors.white,
                     ),
                   ),
-                  const SizedBox(height: 3),
-                  Text(
-                    mode.description,
-                    style: const TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
-                  ),
+                  if (mode.description.isNotEmpty) ...[
+                    const SizedBox(height: 5),
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.arrow_right,
+                          size: 16,
+                          color: Color(0xFF38BDF8),
+                        ),
+                        Flexible(
+                          child: Text(
+                            mode.description,
+                            textDirection: TextDirection.ltr,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF7DD3FC),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ],
               ),
             ),
-            // مؤشر التحديد أو التحميل
+
+            const SizedBox(width: 8),
+            // ── أيقونة التحديد عند الاختيار ──
             if (isSelected && isApplying)
               const SizedBox(
                 width: 22,
                 height: 22,
-                child: CircularProgressIndicator(strokeWidth: 2),
+                child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF38BDF8)),
               )
             else if (isSelected)
               const Icon(Icons.check_circle, color: Color(0xFF38BDF8), size: 24),
