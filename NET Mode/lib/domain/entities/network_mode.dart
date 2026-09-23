@@ -133,6 +133,85 @@ class NetworkMode {
     gsmOnly,
   ];
 
+  // ─────────────────────────────────────────────────────────────────────────
+  // Yemen Carrier-Specific Presets
+  // مُصمَّمة لشبكات الاتصالات اليمنية بناءً على أكواد RIL الفعلية.
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /// Yemen Mobile + 4G LTE Mode.
+  ///
+  /// يُثبِّت الجهاز على شبكة CDMA+LTE/EVDO (PRL) الخاصة بيمن موبايل.
+  /// Android RIL code: 7 (LTE_CDMA_EVDO — preferred network type).
+  static const NetworkMode yemenMobile4G = NetworkMode(
+    id: 'yemen_mobile_4g',
+    name: 'Yemen Mobile+4G',
+    networkTypeCode: 7,
+    generation: NetworkGeneration.fourG,
+    isLockMode: false,
+    description: 'CDMA+LTE/EVDO (PRL)',
+  );
+
+  /// Yemen Mobile 3G Only Mode.
+  ///
+  /// يُثبِّت الجهاز على شبكة CDMA/EVDO Auto (PRL) الخاصة بيمن موبايل.
+  /// Android RIL code: 4 (CDMA_EVDO_AUTO).
+  static const NetworkMode yemenMobile3G = NetworkMode(
+    id: 'yemen_mobile_3g',
+    name: 'Yemen Mobile 3G Only',
+    networkTypeCode: 4,
+    generation: NetworkGeneration.threeG,
+    isLockMode: true,
+    description: 'CDMA/EVDO auto (PRL)',
+  );
+
+  /// Sabafon + YOU (MTN) Mode.
+  ///
+  /// يُثبِّت الجهاز على شبكة GSM/WCDMA/LTE (PRL) لسبأفون وواي (يو).
+  /// Android RIL code: 10 (LTE_GSM_WCDMA).
+  static const NetworkMode sabafonYou = NetworkMode(
+    id: 'sabafon_you',
+    name: 'sabafon + you',
+    networkTypeCode: 10,
+    generation: NetworkGeneration.fourG,
+    isLockMode: false,
+    description: 'GSM/WCDMA/LTE (PRL)',
+  );
+
+  /// VoLTE (Voice over LTE) Mode.
+  ///
+  /// يُثبِّت الاتصال على LTE Only لتفعيل مكالمات VoLTE.
+  /// Android RIL code: 11 (LTE_ONLY).
+  static const NetworkMode volte = NetworkMode(
+    id: 'volte',
+    name: 'VoLTE',
+    networkTypeCode: 11,
+    generation: NetworkGeneration.fourG,
+    isLockMode: true,
+    description: 'LTE only',
+  );
+
+  /// Auto / Global Mode (تلقائي).
+  ///
+  /// يترك الهاتف يختار الشبكة تلقائياً حسب أفضل إشارة متاحة.
+  /// Android RIL code: 0 (WCDMA_PREF / Auto-detect by modem).
+  static const NetworkMode autoYemen = NetworkMode(
+    id: 'auto_yemen',
+    name: '(Auto)',
+    networkTypeCode: 0,
+    generation: NetworkGeneration.autoMultiMode,
+    isLockMode: false,
+    description: 'Unknown',
+  );
+
+  /// قائمة الأنماط اليمنية المخصصة للمشغلين المحليين.
+  static const List<NetworkMode> yemenPresets = [
+    yemenMobile4G,
+    yemenMobile3G,
+    sabafonYou,
+    volte,
+    autoYemen,
+  ];
+
   /// Creates a copy of this [NetworkMode] with optional updated fields.
   NetworkMode copyWith({
     String? id,
