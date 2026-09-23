@@ -194,7 +194,6 @@ flutter run
 
 ## 📑 التوثيق والتقارير (Documentation & Reports)
 
-* [📄 تقرير المشروع النهائي بصيغة PDF (NET_Mode_Final_Report.pdf)](NET_Mode_Final_Report.pdf)
 * [📘 وثيقة مواصفات متطلبات البرمجيات (IEEE 830 SRS)](docs/SRS.md)
 * [📗 قصص المستخدمين ومعايير القبول (User Stories)](docs/USER_STORIES.md)
 * [📙 خطة سير العمل وفروع المهام (Kanban & Git Workflow)](docs/KANBAN_AND_GIT_WORKFLOW.md)
