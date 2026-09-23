@@ -40,7 +40,17 @@ void main() {
       expect(NetworkMode.standardPresets, contains(NetworkMode.nrOnly));
       expect(NetworkMode.standardPresets, contains(NetworkMode.autoGlobal));
       expect(NetworkMode.standardPresets, contains(NetworkMode.wcdmaOnly));
+      expect(NetworkMode.standardPresets, contains(NetworkMode.wcdmaPreferred));
       expect(NetworkMode.standardPresets, contains(NetworkMode.gsmOnly));
+    });
+
+    test('wcdmaPreferred uses RIL code 3 and is not a lock mode', () {
+      expect(NetworkMode.wcdmaPreferred.networkTypeCode, equals(3));
+      expect(NetworkMode.wcdmaPreferred.isLockMode, isFalse);
+      expect(
+        NetworkMode.wcdmaPreferred.generation,
+        equals(NetworkGeneration.threeG),
+      );
     });
   });
 }

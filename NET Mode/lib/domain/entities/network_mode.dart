@@ -112,6 +112,18 @@ class NetworkMode {
     description: 'Forces connection to 3G WCDMA network only.',
   );
 
+  /// Standard WCDMA Preferred mode (prefers 3G, allows 2G fallback).
+  ///
+  /// Android RIL preferred network type code: 3 (WCDMA_PREF).
+  static const NetworkMode wcdmaPreferred = NetworkMode(
+    id: 'wcdma_preferred',
+    name: 'WCDMA Preferred (3G)',
+    networkTypeCode: 3,
+    generation: NetworkGeneration.threeG,
+    isLockMode: false,
+    description: 'Prefers 3G WCDMA but allows fallback to 2G when unavailable.',
+  );
+
   /// Standard GSM (2G) Only mode.
   ///
   /// Android RIL preferred network type code: 1 (GSM_ONLY).
@@ -130,6 +142,7 @@ class NetworkMode {
     nrOnly,
     lteOnly,
     wcdmaOnly,
+    wcdmaPreferred,
     gsmOnly,
   ];
 
