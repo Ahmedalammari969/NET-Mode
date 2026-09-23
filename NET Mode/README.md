@@ -98,12 +98,20 @@
 <div align="center">
   <table>
     <tr>
-      <td align="center"><b>واجهة التطبيق الرئيسية (NET Mode Dashboard)</b></td>
-      <td align="center"><b>شاشة فحص المودم الأصلية (Phone Info)</b></td>
+      <td align="center" width="33%"><b>1. واجهة التطبيق الرئيسية</b><br /><sub>NET Mode Dashboard</sub></td>
+      <td align="center" width="33%"><b>2. شاشة المودم الأصلية</b><br /><sub>Phone Info / Radio Settings</sub></td>
+      <td align="center" width="33%"><b>3. وضع الطيران الذكي</b><br /><sub>Defensive Airplane Mode</sub></td>
     </tr>
     <tr>
-      <td align="center"><img src="app_screen.png" width="300" alt="واجهة التطبيق الرئيسية" /></td>
-      <td align="center"><img src="device_screen.png" width="300" alt="شاشة Phone info" /></td>
+      <td align="center">
+        <img src="img/app_screen.png" width="280" style="border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.3);" alt="واجهة التطبيق الرئيسية" />
+      </td>
+      <td align="center">
+        <img src="img/device_screen.png" width="280" style="border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.3);" alt="شاشة فحص المودم Phone Info" />
+      </td>
+      <td align="center">
+        <img src="img/screen_airplane.png" width="280" style="border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.3);" alt="وضع الطيران" />
+      </td>
     </tr>
   </table>
 </div>
@@ -154,7 +162,7 @@
   </table>
 
   <br />
-  <p><b>تحت إشراف الأستاذ الدكتور:</b> <code>د. سليمان الشوصي</code></p>
+  <p><b>تحت إشراف الأستاذ الدكتور:</b> <code>د.م.ساهر الهمداني</code></p>
 </div>
 
 ---
