@@ -1,9 +1,9 @@
-import 'package:flutter_test/flutter_test.dart';
+﻿import 'package:flutter_test/flutter_test.dart';
 import 'package:net_mode/data/datasources/radio_device_datasource.dart';
 import 'package:net_mode/data/repositories/network_repository_impl.dart';
 import 'package:net_mode/domain/entities/network_mode.dart';
 
-class MockRadioDataSource implements RadioDeviceDataSource {
+class MockRadioDataSource extends RadioDeviceDataSource {
   @override
   Future<Map<String, dynamic>> getInstantNetworkSnapshot() async {
     return {
