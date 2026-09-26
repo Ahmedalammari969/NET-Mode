@@ -5,6 +5,7 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.provider.Settings
 import android.telephony.TelephonyManager
 import androidx.core.app.ActivityCompat
@@ -214,8 +215,10 @@ class MainActivity : FlutterActivity() {
     }
 
     /**
-     * تشغيل واجهة إعدادات الراديو مع إعطاء الأولوية القصوى لأجهزة سامسونج (OneUI)
-     * واستهداف حزمة com.android.phone.settings.RadioInfo
+     * تشغيل واجهة إعدادات الراديو بسلسلة أولويات محكمة:
+     * 1. مسار أجهزة سامسونج OneUI (Issue #1)
+     * 2. مسار أجهزة شاومي MIUI/HyperOS والأندرويد الخام AOSP (Issue #2)
+     * 3. مسار إعدادات الشبكة العامة للنظام كبديل أخير آمن
      */
     private fun triggerRadioActivity(context: Context): Boolean {
         // 1. محاولة إطلاق واجهة سامسونج المخصصة
@@ -223,15 +226,19 @@ class MainActivity : FlutterActivity() {
             return true
         }
 
-        // 2. سلسلة البدائل القياسية (AOSP / Xiaomi / Fallbacks)
-        val fallbackTargets = listOf(
-            Intent().setComponent(ComponentName("com.android.settings", "com.android.settings.RadioInfo")),
-            Intent().setComponent(ComponentName("com.android.settings", "com.android.settings.TestingSettings")),
+        // 2. محاولة إطلاق واجهة شاومي والأندرويد الخام AOSP
+        if (launchXiaomiAndAospIntent(context)) {
+            return true
+        }
+
+        // 3. سلسلة البدائل العامة للنظام (System Network Settings Fallbacks)
+        val systemFallbacks = listOf(
             Intent(Settings.ACTION_DATA_ROAMING_SETTINGS),
+            Intent(Settings.ACTION_NETWORK_OPERATOR_SETTINGS),
             Intent(Settings.ACTION_WIRELESS_SETTINGS),
         )
 
-        for (intent in fallbackTargets) {
+        for (intent in systemFallbacks) {
             try {
                 intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
                 context.startActivity(intent)
@@ -244,7 +251,7 @@ class MainActivity : FlutterActivity() {
     }
 
     /**
-     * استهداف هواتف سامسونج وقوائم RadioInfo الخفية المتوافقة مع OneUI
+     * استهداف هواتف سامسونج وقوائم RadioInfo الخفية المتوافقة مع OneUI (Issue #1)
      */
     private fun launchSamsungRadioIntent(context: Context): Boolean {
         val samsungTargets = listOf(
@@ -261,6 +268,37 @@ class MainActivity : FlutterActivity() {
                 return true
             } catch (_: SecurityException) {
                 // التقاط قيود Knox أو الحماية
+                continue
+            } catch (_: Exception) {
+                continue
+            }
+        }
+        return false
+    }
+
+    /**
+     * استدعاء مسار RadioInfo و TestingSettings لأجهزة شاومي (MIUI / HyperOS) والأندرويد الخام AOSP (Issue #2)
+     */
+    private fun launchXiaomiAndAospIntent(context: Context): Boolean {
+        val targets = listOf(
+            // مسار AOSP الخام القياسي لشاشة معلومات الراديو
+            Intent().setComponent(ComponentName("com.android.settings", "com.android.settings.RadioInfo")),
+            // مسار إعدادات الفحص والاختبار العام
+            Intent().setComponent(ComponentName("com.android.settings", "com.android.settings.TestingSettings")),
+            // مسار شاومي وواجهة MIUI / HyperOS المتخصص لشاشة الاختبار
+            Intent().setComponent(ComponentName("com.android.settings", "com.android.settings.Settings\$TestingSettingsActivity")),
+            // بديل حزمة الهاتف لـ TestingSettings
+            Intent().setComponent(ComponentName("com.android.phone", "com.android.phone.TestingSettings")),
+            // برودكاست الكود السري المعياري للراديو (*#*#4636#*#*)
+            Intent("android.provider.Telephony.SECRET_CODE", Uri.parse("android_secret_code://4636")),
+        )
+
+        for (intent in targets) {
+            try {
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                context.startActivity(intent)
+                return true
+            } catch (_: SecurityException) {
                 continue
             } catch (_: Exception) {
                 continue
