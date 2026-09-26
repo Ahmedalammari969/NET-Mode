@@ -17,6 +17,7 @@ import io.flutter.plugin.common.MethodChannel
 class MainActivity : FlutterActivity() {
     private val CHANNEL = "com.netmode.app/radio"
     private val READ_PHONE_STATE_REQUEST_CODE = 101
+    private var methodChannel: MethodChannel? = null
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -30,29 +31,45 @@ class MainActivity : FlutterActivity() {
             )
         }
 
-        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler { call, result ->
-            when (call.method) {
-                "openRadioSettings" -> {
-                    val opened = triggerRadioActivity(this)
-                    result.success(opened)
-                }
-                "getInstantNetworkSnapshot" -> {
-                    val snapshot = getQuickNetworkSnapshot(this)
-                    result.success(snapshot)
-                }
-                "setNetworkMode" -> {
-                    // محاولة تغيير نمط الشبكة برمجياً عبر الـ API الخفي
-                    val networkTypeCode = call.argument<Int>("networkTypeCode") ?: 0
-                    val applied = trySetNetworkMode(networkTypeCode)
-                    if (!applied) {
-                        // Fallback: فتح قائمة الراديو لتغيير النمط يدوياً
-                        triggerRadioActivity(this)
+        // إعداد وتأمين جسر القناة الموحدة com.netmode.app/radio (Issue #4)
+        methodChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL)
+        methodChannel?.setMethodCallHandler { call, result ->
+            try {
+                when (call.method) {
+                    "openRadioSettings" -> {
+                        val opened = triggerRadioActivity(this)
+                        result.success(opened)
                     }
-                    result.success(applied)
+                    "getInstantNetworkSnapshot" -> {
+                        val snapshot = getQuickNetworkSnapshot(this)
+                        result.success(snapshot)
+                    }
+                    "setNetworkMode" -> {
+                        // محاولة تغيير نمط الشبكة برمجياً عبر الـ API الخفي
+                        val networkTypeCode = call.argument<Int>("networkTypeCode") ?: 0
+                        val applied = trySetNetworkMode(networkTypeCode)
+                        if (!applied) {
+                            // Fallback: فتح قائمة الراديو لتغيير النمط يدوياً
+                            triggerRadioActivity(this)
+                        }
+                        result.success(applied)
+                    }
+                    else -> result.notImplemented()
                 }
-                else -> result.notImplemented()
+            } catch (e: Exception) {
+                // منع انهيار القناة وإرجاع الخطأ لطبقة Dart بأمان
+                result.error("CHANNEL_EXECUTION_ERROR", e.localizedMessage, e.javaClass.simpleName)
             }
         }
+    }
+
+    /**
+     * تنظيف موارد القناة وإلغاء المعالج لمنع تسريب الذاكرة (Memory Leak Prevention)
+     */
+    override fun cleanUpFlutterEngine(flutterEngine: FlutterEngine) {
+        methodChannel?.setMethodCallHandler(null)
+        methodChannel = null
+        super.cleanUpFlutterEngine(flutterEngine)
     }
 
     private fun hasPhonePermission(): Boolean {
