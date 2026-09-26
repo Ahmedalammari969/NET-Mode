@@ -69,14 +69,20 @@ class NetworkStatusCard extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
       decoration: BoxDecoration(
         color: const Color(0xFF162032).withValues(alpha: 0.75),
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: const Color(0xFF38BDF8).withValues(alpha: 0.3),
+          color: const Color(0xFF38BDF8).withValues(alpha: 0.35),
           width: 1.5,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.35),
+            color: const Color(0xFF38BDF8).withValues(alpha: 0.12),
+            blurRadius: 16,
+            spreadRadius: 1,
+            offset: const Offset(0, 4),
+          ),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.4),
             blurRadius: 18,
             offset: const Offset(0, 6),
           ),
@@ -120,21 +126,43 @@ class NetworkStatusCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 14),
           if (info == null)
-            const CircularProgressIndicator()
-          else ...[
-            // ── اسم/رمز المشغل في المنتصف ──
-            Text(
-              info.carrier,
-              style: const TextStyle(
-                fontSize: 26,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-                letterSpacing: 1,
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 24),
+              child: Center(
+                child: CircularProgressIndicator(
+                  color: Color(0xFF38BDF8),
+                  strokeWidth: 2.5,
+                ),
               ),
+            )
+          else ...[
+            // ── أيقونة برج الاتصال واسم المشغل ──
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(
+                  Icons.cell_tower,
+                  size: 28,
+                  color: Color(0xFF38BDF8),
+                ),
+                const SizedBox(width: 10),
+                Flexible(
+                  child: Text(
+                    info.carrier,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                      letterSpacing: 0.8,
+                    ),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 12),
             // ── النمط الحالي ──
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 6),
