@@ -18,6 +18,30 @@ class MockRadioDataSource implements RadioDeviceDataSource {
 
   @override
   Future<bool> setNetworkMode(int networkTypeCode) async => true;
+
+  @override
+  Future<bool> isRadioEnabled() async => true;
+
+  @override
+  Future<int?> getPreferredNetworkMode({int? subId}) async => 9;
+
+  @override
+  Future<bool> setPreferredNetworkMode({required int mode, int? subId}) async => true;
+
+  @override
+  Future<Map<String, dynamic>> getRawNetworkInfo({int? subId}) async => {
+        'operatorName': 'Test Carrier',
+        'networkType': '4G LTE',
+      };
+
+  @override
+  Future<Map<String, dynamic>?> getCellIdentity({int? subId}) async => null;
+
+  @override
+  Future<int?> getSignalStrengthDbm({int? subId}) async => -85;
+
+  @override
+  Future<dynamic> invokeRawMethod(String method, [dynamic arguments]) async => null;
 }
 
 void main() {
