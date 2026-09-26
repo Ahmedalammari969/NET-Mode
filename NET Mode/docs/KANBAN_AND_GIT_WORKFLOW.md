@@ -140,3 +140,93 @@
 ```bash
 git checkout main
 git pull origin main
+```
+
+### الخطوة 2: إنشاء الفرع المستقل للمهمة (Branch Creation)
+يتم تفريع كود الميزة بالاسم المعياري المرتبط برقم الـ Issue:
+```bash
+# مثال لمحمد الدعيس للعمل على Issue 7:
+git checkout -b feature/issue-7-network-info-entity
+
+# مثال لمؤيد الصوفي للعمل على Issue 20:
+git checkout -b feature/issue-20-network-status-card
+```
+
+### الخطوة 3: التطوير والتحقق الهندسي المحلي
+قبل عمل Commit، يتأكد المطور من سلامة الكود والاختبارات:
+```bash
+flutter analyze
+flutter test
+```
+
+### الخطوة 4: التجهيز وحفظ التعديلات (Commit Standards)
+صيغة رسالة الـ Commit الاحترافية وفق المعيار المعتمد (Conventional Commits):
+```bash
+git add .
+git commit -m "feat(domain): implement pure NetworkInfo entity and equality tests [Closes #7]"
+```
+
+### الخطوة 5: رفع الفرع إلى المستودع السحابي (Push to GitHub)
+```bash
+git push -u origin feature/issue-7-network-info-entity
+```
+
+### الخطوة 6: فتح ومراجعة طلب الدمج (Pull Request Workflow)
+1. الدخول على GitHub وفتح **Pull Request** موجه من `feature/issue-X-...` نحو `main` (أو `develop`).
+2. إضافة مراجعين (Reviewers) من الفريق.
+3. التأكد من نجاح اختبارات الـ CI التلقائية (GitHub Actions).
+4. عند الموافقة يتم الدمج (Squash and merge أو Create a merge commit).
+5. تنظيف الفرع المحلي بعد الدمج:
+```bash
+git checkout main
+git pull origin main
+git branch -d feature/issue-7-network-info-entity
+```
+
+---
+
+## 3. دليل تطبيق لوحة كانبان على Trello بالتفصيل (Trello Board Setup)
+
+لتنسيق العمل الجماعي بين أعضاء الفريق الأربعة (أحمد، محمد، يوسف، مؤيد)، يتم إنشاء لوحة Trello وضبطها كالتالي:
+
+### 1. إعداد أعمدة اللوحة (Trello Lists)
+أنشئ 5 قوائم رئيسية بالترتيب:
+1. 📋 **Backlog (المخزون العام):** تُوضع فيه جميع بطاقات الـ 24 Issue غير المجدولة حالياً.
+2. ⏳ **To Do (جاهز للتنفيذ):** المهام المجدولة للأسبوع أو الدورة الحالية وتنتظر بدء العمل.
+3. 🚀 **In Progress (قيد التنفيذ):** **قاعدة ذهبية:** لا يجوز للعضو وضع أكثر من بطاقة واحدة في هذا العمود.
+4. 👀 **In Review / PR (قيد المراجعة):** البطاقات التي تم رفع فروعها على GitHub وفُتح لها Pull Request وتنتظر موافقة الزميل.
+5. ✅ **Done (تم الإنجاز):** المهام التي تم دمج الـ PR الخاص بها في `main` واجتازت الاختبارات.
+
+### 2. تصنيف وتلوين البطاقات (Labels)
+- 🟢 **أخضر (Native Android):** مهام أحمد العماري (Issues #1 to #6)
+- 🔵 **أزرق (Clean Domain):** مهام محمد الدعيس (Issues #7 to #12)
+- 🟣 **بنفسجي (Data & Security):** مهام يوسف خيري (Issues #13 to #18)
+- 🟠 **برتقالي (UI/UX):** مهام مؤيد الصوفي (Issues #19 to #24)
+
+### 3. مكونات بطاقة الـ Trello النموذجية
+عند إنشاء بطاقة لكل مهمة، اجعل محتواها كالآتي:
+- **العنوان:** `[Issue #7] Pure NetworkInfo Entity Definition`
+- **العضو المسند (Member):** إضافة حساب العضو المسؤول.
+- **التصنيف (Label):** `Clean Domain`.
+- **الوصف (Description):**
+  - مسار الملف: `lib/domain/entities/network_info.dart`
+  - اسم الفرع المقترح: `feature/issue-7-network-info-entity`
+  - معايير القبول (Checklist):
+    - [ ] كتابة كلاس الـ Entity
+    - [ ] اختبار `flutter analyze`
+    - [ ] رفع الفرع وفتح PR
+- **المرفقات (Attachments):** بمجرد فتح الـ PR على GitHub، يقوم المطور بنسخ رابط الـ PR ولصقه داخل البطاقة.
+
+### 4. دورة المزامنة اليومية بين Trello و Git:
+```
+[Trello: To Do]
+       │
+       ▼ (يسحب العضو البطاقة)
+[Trello: In Progress] ───────► (ينشئ الفرع: git checkout -b feature/...)
+                                    │
+                                    ▼ (يكتب الكود ويرفع: git push)
+[Trello: In Review / PR] ◄──── (يفتح Pull Request على GitHub)
+       │
+       ▼ (يراجع الزملاء ويدمجون الكود)
+[Trello: Done] ✅
+```
