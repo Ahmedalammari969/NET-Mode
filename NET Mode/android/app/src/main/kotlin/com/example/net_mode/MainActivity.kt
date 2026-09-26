@@ -99,7 +99,7 @@ class MainActivity : FlutterActivity() {
             carrierName = "وضع الطيران"
         }
 
-        // فحص نمط الشبكة الفعلي (يدعم CDMA, EVDO, LTE, 5G)
+        // فحص نمط الشبكة الفعلي عبر RIL Modem Network Decoder (Issue #3)
         val rawType = if (tm != null && hasPhonePermission() && !isAirplaneMode) {
             val dataType = tm.dataNetworkType
             if (dataType != TelephonyManager.NETWORK_TYPE_UNKNOWN) dataType else tm.voiceNetworkType
@@ -107,38 +107,59 @@ class MainActivity : FlutterActivity() {
             TelephonyManager.NETWORK_TYPE_UNKNOWN
         }
 
-        val networkType = if (isAirplaneMode) {
-            "الراديو متوقف (وضع الطيران)"
-        } else {
-            when (rawType) {
-                TelephonyManager.NETWORK_TYPE_NR -> "5G NR"
-                TelephonyManager.NETWORK_TYPE_LTE -> "4G LTE"
-                TelephonyManager.NETWORK_TYPE_EVDO_0,
-                TelephonyManager.NETWORK_TYPE_EVDO_A,
-                TelephonyManager.NETWORK_TYPE_EVDO_B,
-                TelephonyManager.NETWORK_TYPE_EHRPD,
-                TelephonyManager.NETWORK_TYPE_HSPAP,
-                TelephonyManager.NETWORK_TYPE_HSPA,
-                TelephonyManager.NETWORK_TYPE_HSUPA,
-                TelephonyManager.NETWORK_TYPE_HSDPA,
-                TelephonyManager.NETWORK_TYPE_UMTS -> "3G"
-                TelephonyManager.NETWORK_TYPE_1xRTT,
-                TelephonyManager.NETWORK_TYPE_CDMA,
-                TelephonyManager.NETWORK_TYPE_EDGE,
-                TelephonyManager.NETWORK_TYPE_GPRS,
-                TelephonyManager.NETWORK_TYPE_GSM -> "2G / 1xRTT"
-                else -> if (carrierName != "No Carrier" && carrierName != "وضع الطيران") "3G" else "Cellular / Unknown"
-            }
-        }
-
+        val networkType = decodeRilNetworkType(rawType, isAirplaneMode, carrierName)
         val simReady = (tm?.simState == TelephonyManager.SIM_STATE_READY) || (activeSub != null)
 
         return mapOf(
             "carrier" to carrierName,
             "networkType" to networkType,
+            "networkTypeCode" to rawType,
             "simState" to simReady,
             "isAirplaneMode" to isAirplaneMode,
         )
+    }
+
+    /**
+     * مفسر ومصنف أكواد مودم الراديو RIL Modem Network Decoder (Issue #3)
+     * تحويل أكواد TelephonyManager الرقمية لمسميات تقنية واضحة ودقيقة.
+     */
+    private fun decodeRilNetworkType(rawType: Int, isAirplaneMode: Boolean, carrierName: String?): String {
+        if (isAirplaneMode) {
+            return "الراديو متوقف (وضع الطيران)"
+        }
+
+        return when (rawType) {
+            // الجيل الخامس 5G New Radio
+            TelephonyManager.NETWORK_TYPE_NR -> "5G NR"
+
+            // الجيل الرابع 4G LTE
+            TelephonyManager.NETWORK_TYPE_LTE -> "4G LTE"
+
+            // الجيل الثالث 3G UMTS / HSPA / CDMA EVDO
+            TelephonyManager.NETWORK_TYPE_HSPAP,
+            TelephonyManager.NETWORK_TYPE_HSPA,
+            TelephonyManager.NETWORK_TYPE_HSUPA,
+            TelephonyManager.NETWORK_TYPE_HSDPA,
+            TelephonyManager.NETWORK_TYPE_UMTS,
+            TelephonyManager.NETWORK_TYPE_EVDO_0,
+            TelephonyManager.NETWORK_TYPE_EVDO_A,
+            TelephonyManager.NETWORK_TYPE_EVDO_B,
+            TelephonyManager.NETWORK_TYPE_EHRPD -> "3G"
+
+            // الجيل الثاني 2G GSM / CDMA 1xRTT
+            TelephonyManager.NETWORK_TYPE_1xRTT,
+            TelephonyManager.NETWORK_TYPE_CDMA,
+            TelephonyManager.NETWORK_TYPE_EDGE,
+            TelephonyManager.NETWORK_TYPE_GPRS,
+            TelephonyManager.NETWORK_TYPE_GSM -> "2G / 1xRTT"
+
+            // الحالات غير المعروفة
+            else -> if (!carrierName.isNullOrEmpty() && carrierName != "No Carrier" && carrierName != "وضع الطيران") {
+                "3G"
+            } else {
+                "Cellular / Unknown"
+            }
+        }
     }
 
     /**
