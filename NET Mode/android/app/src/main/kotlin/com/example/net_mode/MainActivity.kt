@@ -213,19 +213,55 @@ class MainActivity : FlutterActivity() {
         }
     }
 
+    /**
+     * تشغيل واجهة إعدادات الراديو مع إعطاء الأولوية القصوى لأجهزة سامسونج (OneUI)
+     * واستهداف حزمة com.android.phone.settings.RadioInfo
+     */
     private fun triggerRadioActivity(context: Context): Boolean {
-        val targets = listOf(
-            Intent().setComponent(ComponentName("com.android.phone", "com.android.phone.settings.RadioInfo")),
+        // 1. محاولة إطلاق واجهة سامسونج المخصصة
+        if (launchSamsungRadioIntent(context)) {
+            return true
+        }
+
+        // 2. سلسلة البدائل القياسية (AOSP / Xiaomi / Fallbacks)
+        val fallbackTargets = listOf(
             Intent().setComponent(ComponentName("com.android.settings", "com.android.settings.RadioInfo")),
             Intent().setComponent(ComponentName("com.android.settings", "com.android.settings.TestingSettings")),
             Intent(Settings.ACTION_DATA_ROAMING_SETTINGS),
+            Intent(Settings.ACTION_WIRELESS_SETTINGS),
         )
 
-        for (intent in targets) {
+        for (intent in fallbackTargets) {
             try {
-                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
                 context.startActivity(intent)
                 return true
+            } catch (_: Exception) {
+                continue
+            }
+        }
+        return false
+    }
+
+    /**
+     * استهداف هواتف سامسونج وقوائم RadioInfo الخفية المتوافقة مع OneUI
+     */
+    private fun launchSamsungRadioIntent(context: Context): Boolean {
+        val samsungTargets = listOf(
+            // مسار سامسونج المعياري لشاشات إعدادات الراديو
+            Intent().setComponent(ComponentName("com.android.phone", "com.android.phone.settings.RadioInfo")),
+            // مسار قوائم ServiceMode لأجهزة جالاكسي
+            Intent().setComponent(ComponentName("com.sec.android.RilServiceModeApp", "com.sec.android.RilServiceModeApp.ServiceMode")),
+        )
+
+        for (intent in samsungTargets) {
+            try {
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                context.startActivity(intent)
+                return true
+            } catch (_: SecurityException) {
+                // التقاط قيود Knox أو الحماية
+                continue
             } catch (_: Exception) {
                 continue
             }
