@@ -49,12 +49,15 @@ class RadioActionButton extends StatelessWidget {
               children: [
                 Icon(icon, color: const Color(0xFF38BDF8), size: 20),
                 const SizedBox(width: 8),
-                Text(
-                  label,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF38BDF8),
+                Flexible(
+                  child: Text(
+                    label,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF38BDF8),
+                    ),
                   ),
                 ),
               ],
