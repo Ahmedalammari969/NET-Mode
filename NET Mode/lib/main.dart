@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'presentation/screens/home_screen.dart';
+import 'presentation/theme/app_theme.dart';
 
 // إعادة التصدير لتوافقية ملفات الاختبار الموجودة التي تستورد HomeScreen من main.dart
 export 'presentation/screens/home_screen.dart';
@@ -17,15 +18,10 @@ class NetModeApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'NET Mode',
-      theme: ThemeData(
-        brightness: Brightness.dark,
-        scaffoldBackgroundColor: const Color(0xFF0F172A),
-        colorScheme: const ColorScheme.dark(
-          primary: Color(0xFF38BDF8),
-          secondary: Color(0xFF818CF8),
-        ),
-      ),
+      // [FR-19] الثيم الداكن الرسمي الموحد من AppTheme
+      theme: AppTheme.darkTheme,
       home: const HomeScreen(),
     );
   }
 }
+
