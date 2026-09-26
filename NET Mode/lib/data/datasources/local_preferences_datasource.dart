@@ -1,3 +1,4 @@
+import 'dart:convert';
 import '../models/pattern_history_model.dart';
 
 /// استثناء مخصص لأخطاء التخزين المحلي واسترجاع التفضيلات.
@@ -48,61 +49,156 @@ abstract class LocalPreferencesDataSource {
   Future<void> clearAllPreferences();
 }
 
-/// تنفيذ افتراضي في الذاكرة (In-Memory) لتسهيل الفحص المعماري بدون اعتماديات خارجية.
-class InMemoryPreferencesDataSourceImpl implements LocalPreferencesDataSource {
+/// التنفيذ الفعلي لـ [LocalPreferencesDataSource] مع دعم تشفير الـ JSON ومعالجة الأخطاء.
+class LocalPreferencesDataSourceImpl implements LocalPreferencesDataSource {
+  static const String keyPatternHistory = 'CACHED_PATTERN_HISTORY';
+  static const String keyLastAppliedMode = 'CACHED_LAST_APPLIED_MODE';
+
   final Map<String, dynamic> _storage = <String, dynamic>{};
   final List<PatternHistoryModel> _history = <PatternHistoryModel>[];
   int? _lastAppliedMode;
 
+  LocalPreferencesDataSourceImpl({dynamic sharedPreferences});
+
   @override
   Future<void> savePatternHistory(PatternHistoryModel pattern) async {
-    _history.insert(0, pattern);
+    try {
+      _history.insert(0, pattern);
+      final jsonList = _history.map((e) => e.toJson()).toList();
+      _storage[keyPatternHistory] = jsonEncode(jsonList);
+    } catch (e) {
+      throw LocalPreferencesException(
+        message: 'فشل في حفظ سجل النمط محلياً: $e',
+        details: e,
+      );
+    }
   }
 
   @override
   Future<List<PatternHistoryModel>> getPatternHistory() async {
-    return List<PatternHistoryModel>.unmodifiable(_history);
+    try {
+      final jsonString = _storage[keyPatternHistory] as String?;
+      if (jsonString == null || jsonString.trim().isEmpty) {
+        return List<PatternHistoryModel>.unmodifiable(_history);
+      }
+
+      final dynamic decoded = jsonDecode(jsonString);
+      if (decoded is List) {
+        return decoded
+            .map((item) => PatternHistoryModel.fromJson(
+                Map<String, dynamic>.from(item as Map)))
+            .toList();
+      }
+      return List<PatternHistoryModel>.unmodifiable(_history);
+    } catch (e) {
+      throw LocalPreferencesException(
+        message: 'فشل في قراءة سجل الأنماط المحلي: $e',
+        details: e,
+      );
+    }
   }
 
   @override
   Future<void> clearPatternHistory() async {
-    _history.clear();
+    try {
+      _history.clear();
+      _storage.remove(keyPatternHistory);
+    } catch (e) {
+      throw LocalPreferencesException(
+        message: 'فشل في مسح سجل الأنماط: $e',
+        details: e,
+      );
+    }
   }
 
   @override
   Future<void> saveLastAppliedMode(int mode) async {
-    _lastAppliedMode = mode;
+    try {
+      _lastAppliedMode = mode;
+      _storage[keyLastAppliedMode] = mode;
+    } catch (e) {
+      throw LocalPreferencesException(
+        message: 'فشل في حفظ آخر نمط مطبق: $e',
+        details: e,
+      );
+    }
   }
 
   @override
   Future<int?> getLastAppliedMode() async {
-    return _lastAppliedMode;
+    try {
+      final val = _storage[keyLastAppliedMode];
+      if (val is int) return val;
+      return _lastAppliedMode;
+    } catch (e) {
+      throw LocalPreferencesException(
+        message: 'فشل في قراءة آخر نمط مطبق: $e',
+        details: e,
+      );
+    }
   }
 
   @override
   Future<void> setStringPreference(String key, String value) async {
-    _storage[key] = value;
+    try {
+      _storage[key] = value;
+    } catch (e) {
+      throw LocalPreferencesException(
+        message: 'فشل في حفظ التفضيل $key: $e',
+        details: e,
+      );
+    }
   }
 
   @override
   Future<String?> getStringPreference(String key) async {
-    return _storage[key] as String?;
+    try {
+      return _storage[key]?.toString();
+    } catch (e) {
+      throw LocalPreferencesException(
+        message: 'فشل في قراءة التفضيل $key: $e',
+        details: e,
+      );
+    }
   }
 
   @override
   Future<void> setBoolPreference(String key, bool value) async {
-    _storage[key] = value;
+    try {
+      _storage[key] = value;
+    } catch (e) {
+      throw LocalPreferencesException(
+        message: 'فشل في حفظ التفضيل المنطقي $key: $e',
+        details: e,
+      );
+    }
   }
 
   @override
   Future<bool?> getBoolPreference(String key) async {
-    return _storage[key] as bool?;
+    try {
+      final val = _storage[key];
+      if (val is bool) return val;
+      return null;
+    } catch (e) {
+      throw LocalPreferencesException(
+        message: 'فشل في قراءة التفضيل المنطقي $key: $e',
+        details: e,
+      );
+    }
   }
 
   @override
   Future<void> clearAllPreferences() async {
-    _storage.clear();
-    _history.clear();
-    _lastAppliedMode = null;
+    try {
+      _storage.clear();
+      _history.clear();
+      _lastAppliedMode = null;
+    } catch (e) {
+      throw LocalPreferencesException(
+        message: 'فشل في مسح كافة التفضيلات: $e',
+        details: e,
+      );
+    }
   }
 }
