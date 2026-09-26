@@ -93,20 +93,23 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     }
   }
 
-  /// [FR-23] يفتح إعدادات الراديو مع إظهار SnackBar توجيهي عربي عند التعذر.
+  /// [FR-23 / US-23] يفتح إعدادات الراديو مع إظهار SnackBar توجيهي عربي عند التعذر.
+  ///
+  /// DoD:
+  ///   ✅ إظهار SnackBar تلقائياً إذا أعادت دالة الفتح قيمة false.
+  ///   ✅ صياغة رسالة توجيهية واضحة باللغة العربية.
   Future<void> _openSettings() async {
     final success = await _openRadioSettingsUseCase();
     if (!success && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('تعذر فتح قائمة الراديو — جرب مشغّل آخر أو افتح الإعدادات يدوياً'),
-          backgroundColor: Color(0xFF7C3AED),
-        ),
+      _showSnackBar(
+        icon: Icons.warning_amber_rounded,
+        message: 'تعذر فتح قائمة الراديو — جرب مشغّل آخر أو افتح الإعدادات يدوياً',
+        backgroundColor: const Color(0xFF7C3AED),
       );
     }
   }
 
-  /// [FR-23] يُطبِّق النمط المختار على المودم ويعرض SnackBar تأكيدي أو إرشادي.
+  /// [FR-23 / US-23] يُطبِّق النمط المختار على المودم ويعرض SnackBar تأكيدي أو إرشادي.
   Future<void> _applyMode(NetworkMode mode) async {
     if (_isApplying) return; // منع الضغط المتكرر (Debounce)
     setState(() => _isApplying = true);
@@ -119,23 +122,59 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         _preferredMode = mode;
         _isApplying = false;
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            applied
-                ? '✅ تم تطبيق نمط "${mode.name}" بنجاح'
-                : '📲 افتحت صفحة الإعدادات — اختر من القائمة: ${mode.description}',
-          ),
-          backgroundColor: applied ? const Color(0xFF0369A1) : const Color(0xFF1D4ED8),
-          duration: const Duration(seconds: 4),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );// تحديث قراءة الشبكة في الإطار التالي بعد التغيير
+
+      if (applied) {
+        _showSnackBar(
+          icon: Icons.check_circle_outline,
+          message: 'تم تطبيق نمط "${mode.name}" بنجاح',
+          backgroundColor: const Color(0xFF0369A1),
+        );
+      } else {
+        _showSnackBar(
+          icon: Icons.open_in_new,
+          message: 'افتحت صفحة الإعدادات — اختر من القائمة: ${mode.description}',
+          backgroundColor: const Color(0xFF1D4ED8),
+        );
+      }
+
+      // تحديث قراءة الشبكة في الإطار التالي بعد التغيير
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _loadData();
       });
     }
   }
+
+  /// [FR-23] يعرض SnackBar موحد الشكل مع أيقونة ورسالة توجيهية عربية.
+  void _showSnackBar({
+    required IconData icon,
+    required String message,
+    required Color backgroundColor,
+  }) {
+    // إزالة أي SnackBar سابق قبل عرض الجديد لتجنب التراكم
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Icon(icon, color: Colors.white, size: 20),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                message,
+                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: backgroundColor,
+        duration: const Duration(seconds: 4),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      ),
+    );
+  }
+
 
   @override
   Widget build(BuildContext context) {
