@@ -84,43 +84,41 @@ class NetworkStatusCard extends StatelessWidget {
       ),
       child: Column(
         children: [
-          // ── السطر العلوي: أعمدة الإشارة في المنتصف و حالة الاتصال على اليمين ──
-          SizedBox(
-            height: 50,
-            child: Stack(
-              children: [
-                Align(
-                  alignment: Alignment.center,
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      _buildBar(14, isConnected: isConnected),
-                      const SizedBox(width: 5),
-                      _buildBar(22, isConnected: isConnected),
-                      const SizedBox(width: 5),
-                      _buildBar(30, isConnected: isConnected),
-                      const SizedBox(width: 5),
-                      _buildBar(38, isConnected: isConnected),
-                      const SizedBox(width: 5),
-                      _buildBar(46, isConnected: isConnected),
-                    ],
+          // ── السطر العلوي: أعمدة الإشارة + حالة الاتصال (مرن لتجنب overflow) ──
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // أعمدة الإشارة النيونية
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  _buildBar(14, isConnected: isConnected),
+                  const SizedBox(width: 5),
+                  _buildBar(22, isConnected: isConnected),
+                  const SizedBox(width: 5),
+                  _buildBar(30, isConnected: isConnected),
+                  const SizedBox(width: 5),
+                  _buildBar(38, isConnected: isConnected),
+                  const SizedBox(width: 5),
+                  _buildBar(46, isConnected: isConnected),
+                ],
+              ),
+              const SizedBox(width: 12),
+              // نص حالة الاتصال — Flexible لمنع overflow على الشاشات الصغيرة
+              Flexible(
+                child: Text(
+                  statusText,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.end,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: statusColor,
                   ),
                 ),
-                Positioned(
-                  right: 4,
-                  top: 12,
-                  child: Text(
-                    statusText,
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: statusColor,
-                    ),
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
           const SizedBox(height: 12),
           if (info == null)
@@ -160,13 +158,16 @@ class NetworkStatusCard extends StatelessWidget {
                       color: Color(0xFF7DD3FC),
                     ),
                   ),
-                  Text(
-                    info.networkType,
-                    textDirection: TextDirection.ltr,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                  Flexible(
+                    child: Text(
+                      info.networkType,
+                      textDirection: TextDirection.ltr,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
                     ),
                   ),
                 ],

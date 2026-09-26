@@ -178,9 +178,28 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
+    // [FR-24] استخدام MediaQuery لحساب الأبعاد النسبية وتجنب القيم الثابتة
+    final mediaQuery = MediaQuery.of(context);
+    final screenWidth = mediaQuery.size.width;
+    final screenHeight = mediaQuery.size.height;
+    final isLandscape = mediaQuery.orientation == Orientation.landscape;
+    final isSmallScreen = screenWidth < 360;
+    final isTablet = screenWidth >= 600;
+
+    // حشو أفقي نسبي: أصغر على الشاشات الصغيرة، أكبر على التابلت
+    final horizontalPadding = isTablet ? 32.0 : (isSmallScreen ? 12.0 : 20.0);
+    // حشو عمودي نسبي
+    final verticalPadding = isLandscape ? 8.0 : 16.0;
+    // حجم المسافات بين العناصر
+    final sectionSpacing = isSmallScreen ? 10.0 : 16.0;
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('NET Mode - التحكم بالشبكة'),
+        title: Text(
+          'NET Mode - التحكم بالشبكة',
+          // تصغير الخط على الشاشات الصغيرة لتجنب overflow في العنوان
+          style: TextStyle(fontSize: isSmallScreen ? 15 : 18),
+        ),
         centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -194,11 +213,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       ),
 
       // ── [FR-22 / US-22] زر التحديث الفوري الدائري أسفل الشاشة ──
-      // DoD:
-      //   ✅ وضع زر تحديث دائري أسفل الشاشة مع أيقونة Icons.refresh.
-      //   ✅ إضافة تلميح توصيفي للمستخدم (Tooltip): 'تحديث فوري'.
-      //   ✅ ربط الزر بدالة _loadData() وإعادة بناء الواجهة عبر setState.
-      //   ✅ إظهار مؤشر التحميل المؤقت أثناء عملية التحديث اللحظي.
       floatingActionButton: FloatingActionButton(
         onPressed: _isLoading ? null : _loadData,
         tooltip: 'تحديث فوري',
@@ -215,48 +229,135 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             : const Icon(Icons.refresh, color: Colors.white),
       ),
 
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // ── بطاقة حالة الشبكة الحالية ──
-                  NetworkStatusCard(networkInfo: _networkInfo),
-                  const SizedBox(height: 16),
+      // ── [FR-24 / US-24] الجسم المتجاوب مع SafeArea ──
+      body: SafeArea(
+        child: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : LayoutBuilder(
+                builder: (context, constraints) {
+                  // تقييد العرض الأقصى لتجنب التمدد المفرط على التابلت والشاشات العريضة
+                  final maxContentWidth = isTablet ? 600.0 : constraints.maxWidth;
 
-                  // ── [FR-21] زر تغيير نمط شبكة الهاتف ──
-                  RadioActionButton(onPressed: _openSettings),
-                  const SizedBox(height: 24),
-
-                  // ── عنوان قسم الأنماط اليمنية ──
-                  const Align(
-                    alignment: Alignment.centerRight,
-                    child: Text(
-                      'اختر نمط الشبكة:',
-                      textDirection: TextDirection.rtl,
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF7DD3FC),
+                  return SingleChildScrollView(
+                    // [FR-24] السماح بالتمرير في كلا الاتجاهين لمنع أي overflow
+                    padding: EdgeInsets.symmetric(
+                      horizontal: horizontalPadding,
+                      vertical: verticalPadding,
+                    ),
+                    child: Center(
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(maxWidth: maxContentWidth),
+                        child: isLandscape
+                            ? _buildLandscapeLayout(sectionSpacing, screenHeight)
+                            : _buildPortraitLayout(sectionSpacing),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 14),
-
-                  // ── قائمة الأنماط اليمنية الخمسة ──
-                  ...NetworkMode.yemenPresets.map((mode) {
-                    return ModeCard(
-                      mode: mode,
-                      isSelected: _preferredMode?.id == mode.id,
-                      isApplying: _isApplying,
-                      onTap: () => _applyMode(mode),
-                    );
-                  }),
-                ],
+                  );
+                },
               ),
+      ),
+    );
+  }
+
+  /// [FR-24] التخطيط العمودي (Portrait) — الوضع الافتراضي للهواتف.
+  Widget _buildPortraitLayout(double spacing) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // ── بطاقة حالة الشبكة الحالية ──
+        NetworkStatusCard(networkInfo: _networkInfo),
+        SizedBox(height: spacing),
+
+        // ── [FR-21] زر تغيير نمط شبكة الهاتف ──
+        RadioActionButton(onPressed: _openSettings),
+        SizedBox(height: spacing + 8),
+
+        // ── عنوان قسم الأنماط اليمنية ──
+        const Align(
+          alignment: Alignment.centerRight,
+          child: Text(
+            'اختر نمط الشبكة:',
+            textDirection: TextDirection.rtl,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF7DD3FC),
             ),
+          ),
+        ),
+        SizedBox(height: spacing - 2),
+
+        // ── قائمة الأنماط اليمنية الخمسة ──
+        ...NetworkMode.yemenPresets.map((mode) {
+          return ModeCard(
+            mode: mode,
+            isSelected: _preferredMode?.id == mode.id,
+            isApplying: _isApplying,
+            onTap: () => _applyMode(mode),
+          );
+        }),
+
+        // ── مسافة سفلية إضافية لتجنب تداخل FAB مع المحتوى ──
+        const SizedBox(height: 80),
+      ],
+    );
+  }
+
+  /// [FR-24] التخطيط الأفقي (Landscape) — صفين متجاورين لاستغلال العرض.
+  ///
+  /// يعرض بطاقة الحالة وزر الراديو في العمود الأيسر،
+  /// وقائمة الأنماط في العمود الأيمن، لمنع الحاجة للتمرير الطويل.
+  Widget _buildLandscapeLayout(double spacing, double screenHeight) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // ── العمود الأيسر: بطاقة الحالة + زر الراديو ──
+        Expanded(
+          flex: 5,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              NetworkStatusCard(networkInfo: _networkInfo),
+              SizedBox(height: spacing),
+              RadioActionButton(onPressed: _openSettings),
+            ],
+          ),
+        ),
+        SizedBox(width: spacing),
+
+        // ── العمود الأيمن: قائمة الأنماط ──
+        Expanded(
+          flex: 5,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Align(
+                alignment: Alignment.centerRight,
+                child: Text(
+                  'اختر نمط الشبكة:',
+                  textDirection: TextDirection.rtl,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF7DD3FC),
+                  ),
+                ),
+              ),
+              SizedBox(height: spacing - 2),
+              ...NetworkMode.yemenPresets.map((mode) {
+                return ModeCard(
+                  mode: mode,
+                  isSelected: _preferredMode?.id == mode.id,
+                  isApplying: _isApplying,
+                  onTap: () => _applyMode(mode),
+                );
+              }),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
