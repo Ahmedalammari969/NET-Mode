@@ -5,6 +5,7 @@ import 'data/repositories/network_repository_impl.dart';
 import 'domain/entities/network_info.dart';
 import 'domain/entities/network_mode.dart';
 import 'domain/usecases/network_usecases.dart';
+import 'presentation/widgets/radio_action_button.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -178,42 +179,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   _NetworkStatusCard(networkInfo: _networkInfo),
                   const SizedBox(height: 16),
 
-                  // ── زر تغيير نمط شبكة الهاتف (مطابق للصورة) ──
-                  Container(
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF0F172A).withValues(alpha: 0.5),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: const Color(0xFF38BDF8),
-                        width: 1.5,
-                      ),
-                    ),
-                    child: Material(
-                      color: Colors.transparent,
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(16),
-                        onTap: _openSettings,
-                        child: const Padding(
-                          padding: EdgeInsets.symmetric(vertical: 14),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.settings, color: Color(0xFF38BDF8), size: 20),
-                              SizedBox(width: 8),
-                              Text(
-                                'تغيير نمط شبكة الهاتف',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: Color(0xFF38BDF8),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
+                  // ── [FR-21] زر تغيير نمط شبكة الهاتف ──
+                  RadioActionButton(onPressed: _openSettings),
                   const SizedBox(height: 24),
 
                   // ── عنوان قسم الأنماط اليمنية (مطابق للصورة) ──
