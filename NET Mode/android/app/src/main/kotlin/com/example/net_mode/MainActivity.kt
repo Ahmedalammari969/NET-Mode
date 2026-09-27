@@ -83,20 +83,13 @@ class MainActivity : FlutterActivity() {
         val tm = context.getSystemService(Context.TELEPHONY_SERVICE) as? TelephonyManager
         val sm = context.getSystemService(Context.TELEPHONY_SUBSCRIPTION_SERVICE) as? android.telephony.SubscriptionManager
 
-        // فحص وضع الطيران
-        val isAirplaneMode = Settings.Global.getInt(
-            context.contentResolver,
-            Settings.Global.AIRPLANE_MODE_ON,
-            0,
-        ) != 0
+        // فحص وضع الطيران اللحظي عبر Native Inspector (Issue #5)
+        val isAirplaneMode = inspectAirplaneMode(context)
+
+        // فحص حالة شريحة الاتصال بدقة (SIM State Inspector) (Issue #5)
+        val (simReady, simDetailedState, activeSub) = inspectSimState(tm, sm)
 
         // استخراج اسم المشغل من SubscriptionManager أو TelephonyManager
-        val activeSub = try {
-            if (hasPhonePermission()) sm?.activeSubscriptionInfoList?.firstOrNull() else null
-        } catch (_: Exception) {
-            null
-        }
-
         var carrierName = activeSub?.displayName?.toString()?.takeIf { it.isNotEmpty() }
         if (carrierName.isNullOrEmpty()) {
             carrierName = activeSub?.carrierName?.toString()?.takeIf { it.isNotEmpty() }
@@ -109,7 +102,7 @@ class MainActivity : FlutterActivity() {
         }
         if (carrierName.isNullOrEmpty()) {
             // كود اليمن 421 مع شريحة نشطة -> يمن موبايل
-            carrierName = if (activeSub != null || tm?.simState == TelephonyManager.SIM_STATE_READY) "Yemen Mobile" else "No Carrier"
+            carrierName = if (simReady) "Yemen Mobile" else "No Carrier"
         }
 
         if (isAirplaneMode) {
@@ -125,15 +118,68 @@ class MainActivity : FlutterActivity() {
         }
 
         val networkType = decodeRilNetworkType(rawType, isAirplaneMode, carrierName)
-        val simReady = (tm?.simState == TelephonyManager.SIM_STATE_READY) || (activeSub != null)
 
         return mapOf(
             "carrier" to carrierName,
             "networkType" to networkType,
             "networkTypeCode" to rawType,
             "simState" to simReady,
+            "simDetailedState" to simDetailedState,
             "isAirplaneMode" to isAirplaneMode,
         )
+    }
+
+    /**
+     * فحص وضع الطيران اللحظي من إعدادات النظام العامة (Issue #5)
+     */
+    private fun inspectAirplaneMode(context: Context): Boolean {
+        return try {
+            Settings.Global.getInt(
+                context.contentResolver,
+                Settings.Global.AIRPLANE_MODE_ON,
+                0,
+            ) != 0
+        } catch (_: Exception) {
+            try {
+                @Suppress("DEPRECATION")
+                Settings.System.getInt(
+                    context.contentResolver,
+                    Settings.System.AIRPLANE_MODE_ON,
+                    0,
+                ) != 0
+            } catch (_: Exception) {
+                false
+            }
+        }
+    }
+
+    /**
+     * فحص حالة وجاهزية شرائح الاتصال (SIM State & Subscription Inspector) (Issue #5)
+     */
+    private fun inspectSimState(
+        tm: TelephonyManager?,
+        sm: android.telephony.SubscriptionManager?,
+    ): Triple<Boolean, String, android.telephony.SubscriptionInfo?> {
+        val activeSub = try {
+            if (hasPhonePermission()) sm?.activeSubscriptionInfoList?.firstOrNull() else null
+        } catch (_: Exception) {
+            null
+        }
+
+        val simStatus = tm?.simState ?: TelephonyManager.SIM_STATE_UNKNOWN
+        val isReady = (simStatus == TelephonyManager.SIM_STATE_READY) || (activeSub != null)
+
+        val detailedState = when (simStatus) {
+            TelephonyManager.SIM_STATE_READY -> "READY"
+            TelephonyManager.SIM_STATE_ABSENT -> "ABSENT"
+            TelephonyManager.SIM_STATE_PIN_REQUIRED -> "PIN_REQUIRED"
+            TelephonyManager.SIM_STATE_PUK_REQUIRED -> "PUK_REQUIRED"
+            TelephonyManager.SIM_STATE_NETWORK_LOCKED -> "NETWORK_LOCKED"
+            TelephonyManager.SIM_STATE_NOT_READY -> "NOT_READY"
+            else -> if (activeSub != null) "READY" else "UNKNOWN"
+        }
+
+        return Triple(isReady, detailedState, activeSub)
     }
 
     /**
