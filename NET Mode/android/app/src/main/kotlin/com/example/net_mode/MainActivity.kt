@@ -31,7 +31,7 @@ class MainActivity : FlutterActivity() {
             )
         }
 
-        // إعداد وتأمين جسر القناة الموحدة com.netmode.app/radio (Issue #4)
+        // إعداد وتأمين جسر القناة الموحدة com.netmode.app/radio (Issue #4 & Issue #6)
         methodChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL)
         methodChannel?.setMethodCallHandler { call, result ->
             try {
@@ -45,7 +45,7 @@ class MainActivity : FlutterActivity() {
                         result.success(snapshot)
                     }
                     "setNetworkMode" -> {
-                        // محاولة تغيير نمط الشبكة برمجياً عبر الـ API الخفي
+                        // محاولة تغيير نمط الشبكة برمجياً عبر الـ API الخفي مع درع الأمان
                         val networkTypeCode = call.argument<Int>("networkTypeCode") ?: 0
                         val applied = trySetNetworkMode(networkTypeCode)
                         if (!applied) {
@@ -56,6 +56,9 @@ class MainActivity : FlutterActivity() {
                     }
                     else -> result.notImplemented()
                 }
+            } catch (se: SecurityException) {
+                // التقاط قيود Knox وسياسات أمان أندرويد الصارمة وإرجاع استجابة آمنة (Issue #6)
+                result.error("SECURITY_LOCKOUT", "تم حظر العملية بواسطة سياسات أمان الجهاز أو نظام Knox", se.localizedMessage)
             } catch (e: Exception) {
                 // منع انهيار القناة وإرجاع الخطأ لطبقة Dart بأمان
                 result.error("CHANNEL_EXECUTION_ERROR", e.localizedMessage, e.javaClass.simpleName)
@@ -323,12 +326,8 @@ class MainActivity : FlutterActivity() {
         )
 
         for (intent in systemFallbacks) {
-            try {
-                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
-                context.startActivity(intent)
+            if (safeLaunchIntent(context, intent)) {
                 return true
-            } catch (_: Exception) {
-                continue
             }
         }
         return false
@@ -346,15 +345,8 @@ class MainActivity : FlutterActivity() {
         )
 
         for (intent in samsungTargets) {
-            try {
-                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
-                context.startActivity(intent)
+            if (safeLaunchIntent(context, intent)) {
                 return true
-            } catch (_: SecurityException) {
-                // التقاط قيود Knox أو الحماية
-                continue
-            } catch (_: Exception) {
-                continue
             }
         }
         return false
@@ -378,16 +370,31 @@ class MainActivity : FlutterActivity() {
         )
 
         for (intent in targets) {
-            try {
-                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
-                context.startActivity(intent)
+            if (safeLaunchIntent(context, intent)) {
                 return true
-            } catch (_: SecurityException) {
-                continue
-            } catch (_: Exception) {
-                continue
             }
         }
         return false
+    }
+
+    /**
+     * محرك إطلاق المقاصد الآمن والتقاط استثناءات Knox وسياسات الأمان (Issue #6)
+     * System Security Lockout & Exception Catching Engine
+     */
+    private fun safeLaunchIntent(context: Context, intent: Intent): Boolean {
+        return try {
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+            context.startActivity(intent)
+            true
+        } catch (_: SecurityException) {
+            // التقاط استثناءات أمان Knox أو قيود إدارة الأجهزة المؤسسية (MDM / Knox Lockout)
+            false
+        } catch (_: android.content.ActivityNotFoundException) {
+            // عدم وجود الشاشة أو الحزمة في هذا الإصدار
+            false
+        } catch (_: Exception) {
+            // التقاط أي استثناء غير متوقع ومنع انهيار التطبيق
+            false
+        }
     }
 }
